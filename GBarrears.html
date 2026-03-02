@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singer Arrears Management System - Master Premium</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* --- PREMIUM UI STYLING --- */
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; background: url('https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1920&auto=format&fit=crop') no-repeat center fixed; background-size: cover; color: #fff; display: flex; justify-content: center; min-height: 100vh; }
+        .glass-panel { background: rgba(15, 25, 20, 0.7); border-radius: 20px; box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.12); }
+        .page-container { display: none; width: 95%; max-width: 1350px; margin: 30px auto; padding: 30px; animation: fadeIn 0.5s ease-in-out; }
+        .active-page { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        h1, h2, h3 { text-align: center; text-shadow: 2px 4px 8px rgba(0,0,0,0.8); margin-top: 0; }
+        .branch-name { background: rgba(0, 0, 0, 0.5); padding: 12px 30px; border-radius: 40px; border: 1px solid #4caf50; font-size: 1.2em; display: inline-block; margin-bottom: 20px; }
+        
+        button { background: linear-gradient(135deg, #4caf50 0%, #1b5e20 100%); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 25px; border-radius: 30px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); filter: brightness(1.1); }
+        .btn-info { padding: 6px 12px; border-radius: 10px; background: #2196f3; border:none; font-size: 16px; margin: 0; }
+        .btn-danger { background: linear-gradient(135deg, #f44336 0%, #b71c1c 100%); }
+
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border-radius: 10px; background: rgba(0, 0, 0, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.2); font-size: 13px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #4caf50; outline: none; background: rgba(0,0,0,0.8); }
+        select option { background: #1a1a1a; color: #fff; }
+        
+        /* Stats Display */
+        .dashboard-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+        .stat-box { background: rgba(0, 0, 0, 0.45); padding: 25px; border-radius: 15px; margin-bottom: 15px; border-left: 6px solid #4caf50; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .stat-box:hover { transform: translateX(8px); background: rgba(0,0,0,0.6); }
+        .stat-value { background: #fff; color: #000; padding: 6px 18px; border-radius: 10px; font-weight: 900; font-size: 1.4em; }
+        
+        .progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;}
+        .progress-section { background: rgba(0, 0, 0, 0.4); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);}
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(0, 0, 0, 0.4); border-radius: 15px; overflow: hidden; }
+        th { background-color: rgba(0, 0, 0, 0.8); color: #81c784; padding: 15px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+        td { padding: 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+        .row-yellow { background-color: rgba(255, 193, 7, 0.25); } 
+        .row-red { background-color: rgba(244, 67, 54, 0.35); }
+        .row-green { background-color: rgba(76, 175, 80, 0.2); }
+
+        .target-badge { background: #f44336; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-left: 10px; }
+        #infoModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1001; width: 420px; padding: 30px; }
+        #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; }
+        
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .mb-20 { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <script>
+        window.navigate = function(pageId) {
+            document.querySelectorAll('.page-container').forEach(function(p) { p.classList.remove('active-page'); });
+            document.getElementById(pageId).classList.add('active-page'); window.scrollTo(0,0);
+        };
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                if(document.getElementById('welcomePage').classList.contains('active-page')) window.navigate('loginPage');
+            }, 3000);
+        });
+    </script>
+
+    <div id="welcomePage" class="page-container active-page glass-panel" style="text-align: center; margin-top: 15vh;">
+        <h1 style="font-size: 4.5em; font-weight: 900; line-height: 1.1;">ARREARS<br>MANAGEMENT</h1>
+        <p style="font-size: 1.6em; color: #a5d6a7;">Galenbindunuwewa Branch</p>
+        <div style="margin-top:60px; font-size: 14px; opacity: 0.6;">Designed by Mr. Ranbindu</div>
+    </div>
+
+    <div id="loginPage" class="page-container">
+        <div class="glass-panel" style="max-width: 400px; margin: auto; padding: 50px; text-align: center;">
+            <h2 class="mb-20">SECURE LOGIN</h2>
+            <input type="text" id="username" placeholder="Email Address">
+            <input type="password" id="password" placeholder="Password" onkeypress="if(event.key==='Enter') login()">
+            <button onclick="login()" id="loginBtn" style="width: 100%; margin-top: 20px; padding: 15px;">LOGIN TO SYSTEM</button>
+            <div id="loginStatus" style="color: #ff8a80; margin-top: 15px; font-weight: bold;"></div>
+        </div>
+    </div>
+
+    <div id="dashboardPage" class="page-container glass-panel">
+        <div class="flex-between mb-20">
+            <h2 class="branch-name" style="margin:0;">MANAGER DASHBOARD</h2>
+            <button onclick="logout()" class="btn-danger">Logout</button>
+        </div>
+        <div class="dashboard-grid">
+            <div class="sidebar-menu">
+                <button onclick="navigate('importPage')" style="width: 100%; margin-bottom: 10px;">📤 Import IFS Data</button>
+                <button onclick="navigateProgress()" style="width: 100%; margin-bottom: 10px;">📊 Performance Overview</button>
+                <button onclick="navigateManagerCC()" style="width: 100%; margin-bottom: 10px;">📋 Call Center Detailed Logs</button>
+                <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-top: 20px; text-align: center; border: 1px solid #4caf50;">
+                    <h3 style="margin-bottom: 5px; font-size: 14px;">Overall Success Rate</h3>
+                    <h1 style="color: #4caf50; font-size: 3em; margin: 0;" id="dashRate">0%</h1>
+                </div>
+            </div>
+            <div>
+                <div class="stat-box"><span>Total Active Accounts</span><div class="stat-value" id="dashTotal">0</div></div>
+                <div class="stat-box" style="border-color: #ffc107;">
+                    <span style="color: #ffeb3b;">Risk Accounts (Yellow)</span>
+                    <button onclick="filterRiskAccounts()" style="padding: 5px 10px; font-size: 10px;">View List</button>
+                    <div class="stat-value" id="dashYellow">0</div>
+                </div>
+                <div class="stat-box" style="border-color: #f44336;"><span style="color: #ff8a80;">Red Arrears (Issu)</span><div class="stat-value" id="dashRed">0</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="progressPage" class="page-container glass-panel">
+        <button onclick="navigate('dashboardPage')" class="mb-20">&larr; Back to Dashboard</button>
+        <h2>Real-Time Performance Overview</h2>
+        <div class="progress-grid">
+            <div class="progress-section" style="text-align: center;">
+                <h3>Call Center Progress</h3>
+                
+                <div style="display: flex; justify-content: space-around; margin: 15px 0; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px;">
+                    <div style="text-align: center;">
+                        <h4 style="margin:0; opacity:0.8; font-size: 12px; text-transform: uppercase;">Selected Day Rate</h4>
+                        <h1 id="pRateDay" style="font-size: 3em; color: #4caf50; margin: 5px 0;">0%</h1>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                    <div style="text-align: center;">
+                        <h4 style="margin:0; opacity:0.8; font-size: 12px; text-transform: uppercase;">Overall Monthly Rate</h4>
+                        <h1 id="pRateMonth" style="font-size: 3em; color: #2196f3; margin: 5px 0;">0%</h1>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px; text-align: left; padding: 0 10px;">
+                    <span style="font-size: 14px;">📅 දවස තෝරන්න: </span>
+                    <select id="progressDaySelect" onchange="updateProgressSummary()" style="width: 140px; padding: 5px; margin-left: 10px; display: inline-block;">
+                        <option value="today">අද (Today)</option>
+                        </select>
+                </div>
+
+                <div class="flex-between" style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 10px;">
+                    <span>Selected Day Call Target:</span><span id="pTarget" style="font-weight: bold; font-size: 1.2em;">0</span>
+                </div>
+                <div class="flex-between" style="padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 10px;">
+                    <span>Calls Completed (Selected Day):</span><span id="pDone" style="font-weight: bold; font-size: 1.2em;">0</span>
+                </div>
+                <button onclick="navigateManagerCC()" style="margin-top: 15px;">View Detailed Date Logs</button>
+            </div>
+            
+            <div class="progress-section" style="text-align: center;">
+                <h3>Field Collection Status</h3>
+                <h1 id="pFieldCount" style="font-size: 4em; color: #f44336; margin: 30px 0;">0</h1>
+                <p>Total Red Accounts (Field Visit Required)</p>
+                <button onclick="navigate('fieldDetailsPage')" style="margin-top: 15px;">View Field Agent Allocation</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="callCenterDetailsPage" class="page-container glass-panel" style="max-width: 1400px;">
+        <button onclick="navigate('progressPage')" class="mb-20">&larr; Back</button>
+        <h2>Call Center Detailed Logs</h2>
+        
+        <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+             <span>📅 <b>Select Day (1-31):</b></span>
+             <select id="managerDayFilter" onchange="syncManagerView()" style="width: 150px; margin: 0;"></select>
+             
+             <span>🔍 <b>Status Filter:</b></span>
+             <select id="logStatusFilter" onchange="syncManagerView()" style="width: 150px; margin: 0;">
+                 <option value="ALL">All</option>
+                 <option value="CALLED">Called</option>
+                 <option value="PENDING">Pending</option>
+                 <option value="RISK">Risk (Yellow)</option>
+             </select>
+
+             <div style="margin-left: auto;">
+                 <span style="margin-right: 15px;">Target: <b id="fTarget" style="color: #ffeb3b; font-size: 1.2em;">0</b></span>
+                 <span>Called: <b id="fCalled" style="color: #4caf50; font-size: 1.2em;">0</b></span>
+             </div>
+        </div>
+
+        <table id="ccReportTable">
+            <thead><tr><th>Account No</th><th>Customer</th><th>Phone</th><th>Attempts</th><th>Feedback</th><th>Promise Day</th><th>Status</th></tr></thead>
+            <tbody id="managerCCBody"></tbody>
+        </table>
+    </div>
+
+    <div id="fieldDetailsPage" class="page-container glass-panel" style="max-width: 1400px;">
+        <button onclick="navigate('progressPage')" class="mb-20">&larr; Back</button>
+        <h2>Field Agent Performance (Issu)</h2>
+        
+        <table style="margin-bottom: 40px;">
+            <thead><tr><th>Group Sale (G)</th><th>Heenpahana (H)</th><th>Rohan (R)</th><th>Amila (D)</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>Total Arrears: <br><b style="color:#ff8a80;" id="fAmt_G">Rs. 0</b></td>
+                    <td>Total Arrears: <br><b style="color:#ff8a80;" id="fAmt_H">Rs. 0</b></td>
+                    <td>Total Arrears: <br><b style="color:#ff8a80;" id="fAmt_R">Rs. 0</b></td>
+                    <td>Total Arrears: <br><b style="color:#ff8a80;" id="fAmt_D">Rs. 0</b></td>
+                </tr>
+                <tr>
+                    <td>To Collect: <br><b style="color:#ffeb3b;" id="cAmt_G">Rs. 0</b></td>
+                    <td>To Collect: <br><b style="color:#ffeb3b;" id="cAmt_H">Rs. 0</b></td>
+                    <td>To Collect: <br><b style="color:#ffeb3b;" id="cAmt_R">Rs. 0</b></td>
+                    <td>To Collect: <br><b style="color:#ffeb3b;" id="cAmt_D">Rs. 0</b></td>
+                </tr>
+                <tr>
+                    <td style="padding: 20px 0;"><span style="background: rgba(76,175,80,0.5); padding: 10px; border-radius: 8px; font-size: 20px; font-weight: bold;" id="rRate_G">0% Reduce</span></td>
+                    <td style="padding: 20px 0;"><span style="background: rgba(76,175,80,0.5); padding: 10px; border-radius: 8px; font-size: 20px; font-weight: bold;" id="rRate_H">0% Reduce</span></td>
+                    <td style="padding: 20px 0;"><span style="background: rgba(76,175,80,0.5); padding: 10px; border-radius: 8px; font-size: 20px; font-weight: bold;" id="rRate_R">0% Reduce</span></td>
+                    <td style="padding: 20px 0;"><span style="background: rgba(76,175,80,0.5); padding: 10px; border-radius: 8px; font-size: 20px; font-weight: bold;" id="rRate_D">0% Reduce</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="color:#ff8a80;">Arrears Accounts List</h3>
+        <table id="fieldListTable">
+            <thead><tr><th>Account No</th><th>Customer Name</th><th>Mobile No</th><th>Agent</th><th>Arrears Amount (Rs)</th></tr></thead>
+            <tbody id="fieldDetailsBody"></tbody>
+        </table>
+    </div>
+
+    <div id="staffTargetPage" class="page-container glass-panel" style="max-width: 1450px;">
+        <div class="flex-between mb-20">
+            <h2 style="margin:0;">TODAY'S TARGET: <span class="target-badge" id="staffTargetNum">0</span></h2>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="staffSearch" onkeyup="searchGlobalStaffTable()" placeholder="🔍 Search ANY Account globally..." style="width: 300px; margin:0;">
+                <button onclick="logout()" class="btn-danger" style="margin:0;">Logout</button>
+            </div>
+        </div>
+        <table id="staffTable">
+            <thead><tr><th>Account</th><th>Customer</th><th>Mobile (Editable)</th><th>Att.</th><th>Action Taken</th><th>P. Date (Day)</th><th>Save</th><th>Info</th></tr></thead>
+            <tbody id="staffTableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="importPage" class="page-container glass-panel">
+        <button onclick="navigate('dashboardPage')" class="mb-20">&larr; Back</button>
+        <h2>IFS Data Synchronization</h2>
+        <div style="display: flex; gap: 30px; justify-content: center; margin-top: 40px;">
+            <button onclick="document.getElementById('f_new').click()" style="padding: 30px 20px; font-size: 16px;">📂 1. Upload Master Open List</button>
+            <button onclick="document.getElementById('f_red').click()" style="padding: 30px 20px; font-size: 16px; background: linear-gradient(135deg, #f44336, #b71c1c);">📂 2. Upload Arrears (Red) List</button>
+        </div>
+        <div id="loadMsg" style="text-align: center; color: #ffeb3b; margin-top: 20px; display: none; font-weight: bold;">⏳ BATCH PROCESSING... PLEASE WAIT...</div>
+        <input type="file" id="f_new" style="display:none" onchange="uploadExcel(event, 'New')">
+        <input type="file" id="f_red" style="display:none" onchange="uploadExcel(event, 'Red')">
+    </div>
+
+    <div id="modalOverlay" onclick="closeModal()"></div>
+    <div id="infoModal" class="glass-panel">
+        <h2 style="border-bottom: 2px solid #4caf50; padding-bottom: 10px;">MASTER INFO</h2>
+        <p><b>NIC:</b> <span id="m_nic" style="color:#ffeb3b;"></span></p>
+        <p><b>Product:</b> <span id="m_prod" style="color:#81c784;"></span></p>
+        <p><b>Address:</b> <span id="m_addr"></span></p>
+        <p><b>Agree Date:</b> <span id="m_date"></span></p>
+        <button onclick="closeModal()" style="width: 100%; background: #444; margin-top: 20px;">Close Window</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const fbConfig = { apiKey: "AIzaSyDfb0lRJWl9RwkxiCeIMJS8YGJf9M58Z0A", authDomain: "singer-gb-arrears.firebaseapp.com", projectId: "singer-gb-arrears", storageBucket: "singer-gb-arrears.firebasestorage.app", messagingSenderId: "966045703002", appId: "1:966045703002:web:8370b59535ff6310b87163" };
+        const app = initializeApp(fbConfig); const auth = getAuth(app); const db = getFirestore(app);
+        const CLOUD_URL = "https://singer-gb-arrears.ranbindua.workers.dev/";
+
+        let masterData = []; 
+        let phoneDirectory = {}; 
+
+        // Populate Dropdowns (1-31)
+        const daySelects = [document.getElementById("managerDayFilter"), document.getElementById("progressDaySelect")];
+        let td = new Date().getDate();
+        daySelects.forEach(select => {
+            if(select) {
+                for(let i=1; i<=31; i++) {
+                    let opt = document.createElement("option"); opt.value=i; opt.text=i + " වෙනිදා"; 
+                    if(i===td && select.id !== "progressDaySelect") opt.selected=true; // Progress select uses 'today' by default
+                    select.appendChild(opt);
+                }
+            }
+        });
+
+        window.logout = () => { signOut(auth).then(() => { sessionStorage.removeItem("singerCache"); navigate('loginPage'); document.getElementById('loginStatus').innerText = ""; }); };
+
+        window.login = async () => {
+            const e = document.getElementById('username').value.trim(); const p = document.getElementById('password').value;
+            const status = document.getElementById('loginStatus'); status.innerText = "⏳ Authenticating...";
+            try {
+                await signInWithEmailAndPassword(auth, e, p);
+                status.innerText = "✅ Authorized! Loading Data...";
+                
+                onSnapshot(collection(db, "phoneDirectory"), (snap) => {
+                    snap.forEach(d => { phoneDirectory[d.id] = d.data().phone; });
+                });
+
+                initLiveSync(e.includes('manager') || e.includes('admin'));
+            } catch (err) { status.innerText = "❌ Access Denied! Please check credentials."; }
+        };
+
+        // 🌟 LIVE SYNC SYSTEM (Data Packets)
+        function initLiveSync(isManager) {
+            onSnapshot(collection(db, "customers"), (snap) => {
+                masterData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                sessionStorage.setItem("singerCache", JSON.stringify(masterData));
+                
+                if(isManager) {
+                    renderManagerDashboard();
+                    if(document.getElementById('callCenterDetailsPage').classList.contains('active-page')) syncManagerView();
+                    if(document.getElementById('fieldDetailsPage').classList.contains('active-page')) renderFieldList();
+                } else {
+                    renderStaffUI();
+                }
+                
+                if(document.getElementById('loginPage').classList.contains('active-page')) {
+                    window.navigate(isManager ? 'dashboardPage' : 'staffTargetPage');
+                }
+            });
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function getPhone(d) { return phoneDirectory[d.nic] ? phoneDirectory[d.nic] : (d.phone || 'N/A'); }
+        function extractDay(s) { if(!s) return -1; let d = String(s).trim(); if(d.includes("-")) return parseInt(d.split("-")[2]); let n = parseInt(d); return (!isNaN(n) && n<=31) ? n : -1; }
+        
+        function genDays(sel) { 
+            let h="<option value=''>Day</option>"; 
+            for(let i=1; i<=31; i++) { h += `<option value="${i}" ${sel == i ? 'selected' : ''}>${i}</option>`; }
+            return h; 
+        }
+
+        function generateRowHTML(d, isTargetToday, rowC) {
+            let att = parseInt(d.callAttempts) || 0;
+            let pSelect = `<select id="pdt_${d.id}" style="width: 80px; padding: 6px; border-radius: 8px; background: rgba(0,0,0,0.5); color: #fff;">${genDays(d.promiseDate)}</select>`;
+            let safeNic = (d.nic || "N/A").replace(/'/g, "\\'"); let safeProd = (d.product || "N/A").replace(/'/g, "\\'"); let safeAddr = (d.address || "N/A").replace(/'/g, "\\'"); let safeDate = (d.agreeDate || "N/A").replace(/'/g, "\\'");
+            
+            return `<tr class="${rowC}" id="row_${d.id}">
+                <td>${d.accountNo}</td><td>${d.customerName}</td>
+                <td><input type="text" id="ph_${d.id}" value="${getPhone(d)}" style="width:105px; padding:6px; font-size:12px; text-align:center;"></td>
+                <td><input type="number" id="att_${d.id}" value="${att}" min="0" style="width:45px; padding:6px; text-align:center;"></td>
+                <td>
+                    <select id="action_${d.id}" style="width: 140px; padding: 6px; font-size: 12px; text-align:center;">
+                        <option value="">Select Action</option>
+                        <option value="Call Not Answer" ${d.notes==='Call Not Answer'?'selected':''}>Call Not Answer</option>
+                        <option value="Promised to Pay" ${d.notes==='Promised to Pay'?'selected':''}>Promised to Pay</option>
+                        <option value="Customer Paid" ${d.notes==='Customer Paid'?'selected':''}>Customer Paid</option>
+                        <option value="Bad Feedback" ${d.notes==='Bad Feedback'?'selected':''}>Bad Feedback</option>
+                    </select>
+                </td>
+                <td>${pSelect}</td>
+                <td><button onclick="saveData('${d.id}')" style="padding: 6px 12px; font-size:11px;">SAVE</button></td>
+                <td><button class="btn-info" onclick="showMasterModal('${safeNic}', '${safeProd}', '${safeAddr}', '${safeDate}')">❗️</button></td>
+            </tr>`;
+        }
+
+        // --- MANAGER LOGIC ---
+        function renderManagerDashboard() {
+            let t=0, y=0, r=0, targetToday=0, doneToday=0, today = new Date().getDate();
+            masterData.forEach(d => {
+                t++; let att = parseInt(d.callAttempts) || 0;
+                let isRisk = (att >= 3 || d.notes === "Bad Feedback");
+                if(d.listType === "Red") r++; else if (isRisk) y++;
+            });
+            document.getElementById('dashTotal').innerText = t; 
+            document.getElementById('dashYellow').innerText = y; 
+            document.getElementById('dashRed').innerText = r;
+            document.getElementById('pFieldCount').innerText = r;
+            
+            // Invoke the dual progress calculation
+            window.updateProgressSummary();
+        }
+
+        window.navigateProgress = () => { window.navigate('progressPage'); window.updateProgressSummary(); };
+        window.navigateManagerCC = () => { window.navigate('callCenterDetailsPage'); syncManagerView(); };
+        window.filterRiskAccounts = () => { document.getElementById('logStatusFilter').value = "RISK"; window.navigateManagerCC(); }
+
+        // 🌟 NEW: DUAL PERCENTAGE PROGRESS SUMMARY 🌟
+        window.updateProgressSummary = () => {
+            let filterVal = document.getElementById('progressDaySelect').value;
+            let selectedDay = filterVal === "today" ? new Date().getDate() : parseInt(filterVal);
+            
+            let targetDay = 0, doneDay = 0;
+            let targetMonth = 0, doneMonth = 0;
+
+            masterData.forEach(d => {
+                let att = parseInt(d.callAttempts) || 0;
+                
+                // Overall Month Logic (Everyone with a valid agree date or in red list)
+                let isTargetOverall = false;
+                if (d.listType === "Red") isTargetOverall = true;
+                else if (extractDay(d.agreeDate) > 0) isTargetOverall = true;
+                else if (d.promiseDate && parseInt(d.promiseDate) > 0) isTargetOverall = true;
+
+                if (isTargetOverall) {
+                    targetMonth++;
+                    if (att > 0 || d.notes === "Customer Paid") doneMonth++; 
+                }
+
+                // Selected Day Logic
+                let isTargetForSelectedDay = false;
+                if (d.listType === "Red") isTargetForSelectedDay = true;
+                else if (d.promiseDate && parseInt(d.promiseDate) === selectedDay) isTargetForSelectedDay = true;
+                else if (extractDay(d.agreeDate) === selectedDay) isTargetForSelectedDay = true;
+                else if (d.notes === "Call Not Answer") isTargetForSelectedDay = true; // Auto forward
+
+                if (isTargetForSelectedDay) {
+                    targetDay++;
+                    if (att > 0 || d.notes === "Customer Paid") doneDay++;
+                }
+            });
+
+            let dayRate = targetDay > 0 ? Math.round((doneDay/targetDay)*100) : 0;
+            let monthRate = targetMonth > 0 ? Math.round((doneMonth/targetMonth)*100) : 0;
+
+            document.getElementById('pRateDay').innerText = dayRate + "%";
+            document.getElementById('pRateMonth').innerText = monthRate + "%";
+            
+            document.getElementById('pTarget').innerText = targetDay;
+            document.getElementById('pDone').innerText = doneDay;
+            
+            // Sync Dashboard Rate with Overall Month Rate
+            if(document.getElementById('dashRate')) document.getElementById('dashRate').innerText = monthRate + "%";
+        }
+
+        window.syncManagerView = () => {
+            let filterDay = parseInt(document.getElementById('managerDayFilter').value);
+            let filterStatus = document.getElementById('logStatusFilter').value;
+            let html = "", target = 0, called = 0;
+            
+            masterData.forEach(d => {
+                let agreeDay = extractDay(d.agreeDate);
+                let promiseDay = parseInt(d.promiseDate);
+                let att = parseInt(d.callAttempts) || 0;
+                let isRisk = (att >= 3 || d.notes === "Bad Feedback");
+
+                // Show on manager log if matches specific day logic
+                let showOnDay = false;
+                if(d.listType === "Red") showOnDay = true;
+                else if(promiseDay === filterDay) showOnDay = true;
+                else if(agreeDay === filterDay) showOnDay = true;
+
+                if(showOnDay) {
+                    target++; if(att > 0) called++;
+
+                    let statusText = "Pending"; let rowC = "";
+                    if(d.listType === "Red") rowC = "row-red"; else if (isRisk) rowC = "row-yellow"; else if (att > 0) rowC = "row-green";
+                    if(d.notes === "Customer Paid") statusText = "Paid"; else if(att > 0) statusText = "Called";
+
+                    let show = true;
+                    if(filterStatus === "CALLED" && att === 0) show = false;
+                    if(filterStatus === "PENDING" && att > 0) show = false;
+                    if(filterStatus === "RISK" && !isRisk) show = false;
+
+                    if(show) {
+                        let pText = d.promiseDate ? d.promiseDate + " වෙනිදා" : "-";
+                        html += `<tr class="${rowC}"><td>${d.accountNo}</td><td>${d.customerName}</td><td>${getPhone(d)}</td><td>${att}</td><td>${d.notes || '-'}</td><td>${pText}</td><td><b>${statusText}</b></td></tr>`;
+                    }
+                }
+            });
+            document.getElementById('managerCCBody').innerHTML = html || "<tr><td colspan='7'>No records found.</td></tr>";
+            document.getElementById('fTarget').innerText = target; document.getElementById('fCalled').innerText = called;
+        }
+
+        // 🌟 FIELD PROGRESS MATH LOGIC 🌟
+        window.renderFieldList = () => {
+            let html = "";
+            let stats = {
+                "Group Sale": { total: 0, collect: 0 },
+                "Heenpahana": { total: 0, collect: 0 },
+                "Rohan": { total: 0, collect: 0 },
+                "Amila": { total: 0, collect: 0 }
+            };
+
+            masterData.forEach(d => {
+                if(d.listType === "Red") {
+                    let amt = parseFloat(d.arrearsAmount) || 0;
+                    let agent = d.fieldAgent || "Unknown";
+                    let isPaid = (d.notes === "Customer Paid");
+
+                    if(stats[agent]) {
+                        stats[agent].total += amt;
+                        if(!isPaid) stats[agent].collect += amt;
+                    }
+
+                    let rClass = isPaid ? "row-green" : "row-red";
+                    html += `<tr class="${rClass}"><td>${d.accountNo}</td><td>${d.customerName}</td><td>${getPhone(d)}</td><td>${agent}</td><td>Rs. ${amt}</td></tr>`;
+                }
+            });
+            document.getElementById('fieldDetailsBody').innerHTML = html || "<tr><td colspan='5'>No accounts found.</td></tr>";
+            
+            // Render Math UI
+            ["Group Sale", "Heenpahana", "Rohan", "Amila"].forEach((ag, idx) => {
+                let code = ["G", "H", "R", "D"][idx];
+                let tot = stats[ag].total;
+                let col = stats[ag].collect;
+                let rate = tot > 0 ? Math.round(((tot - col) / tot) * 100) : 0;
+
+                document.getElementById(`fAmt_${code}`).innerText = `Rs. ${tot}`;
+                document.getElementById(`cAmt_${code}`).innerText = `Rs. ${col}`;
+                document.getElementById(`rRate_${code}`).innerText = `${rate}% Reduce`;
+            });
+        }
+
+        // --- 🌟 STAFF LOGIC & GLOBAL SEARCH 🌟 ---
+        window.renderStaffUI = () => {
+            let html = "", target = 0, today = new Date().getDate();
+            
+            let sortedData = [...masterData].sort((a,b) => {
+                if(a.listType === "Red" && b.listType !== "Red") return -1;
+                if(a.listType !== "Red" && b.listType === "Red") return 1;
+                return (b.arrearsAmount||0) - (a.arrearsAmount||0);
+            });
+
+            sortedData.forEach(d => {
+                if (d.notes === "Customer Paid") return; 
+                
+                let att = parseInt(d.callAttempts) || 0;
+                let isRisk = (att >= 3 || d.notes === "Bad Feedback");
+                let rowC = d.listType === "Red" ? "row-red" : (isRisk ? "row-yellow" : "");
+
+                let isTargetToday = false;
+                if (d.listType === "Red") {
+                    isTargetToday = true;
+                } else if (d.promiseDate && d.promiseDate !== "") {
+                    if(parseInt(d.promiseDate) <= today) isTargetToday = true; // Show on or after promise day
+                } else if (extractDay(d.agreeDate) === today) {
+                    isTargetToday = true;
+                } else if (d.notes === "Call Not Answer" || (att > 0 && d.notes !== "Promised to Pay")) {
+                    isTargetToday = true; // Auto forward unanswered
+                }
+
+                if (isTargetToday || rowC !== "") {
+                    target++;
+                    html += generateRowHTML(d, isTargetToday, rowC);
+                }
+            });
+            document.getElementById('staffTableBody').innerHTML = html || "<tr><td colspan='8'>No targets for today!</td></tr>";
+            document.getElementById('staffTargetNum').innerText = target;
+        }
+
+        // GLOBAL SEARCH IMPLEMENTATION
+        window.searchGlobalStaffTable = () => {
+            let f = document.getElementById('staffSearch').value.toLowerCase().trim();
+            if(f === "") { window.renderStaffUI(); return; } // Reset to today target
+
+            let html = "";
+            masterData.forEach(d => {
+                if(d.accountNo.toLowerCase().includes(f) || d.customerName.toLowerCase().includes(f) || (d.nic && d.nic.toLowerCase().includes(f))) {
+                    let att = parseInt(d.callAttempts) || 0;
+                    let isRisk = (att >= 3 || d.notes === "Bad Feedback");
+                    let rowC = d.listType === "Red" ? "row-red" : (isRisk ? "row-yellow" : "");
+                    html += generateRowHTML(d, true, rowC);
+                }
+            });
+            document.getElementById('staffTableBody').innerHTML = html || "<tr><td colspan='8'>No accounts found in entire database.</td></tr>";
+        };
+
+        window.saveData = async (docId) => {
+            let d = masterData.find(x => x.id === docId);
+            let action = document.getElementById(`action_${docId}`).value;
+            let phoneVal = document.getElementById(`ph_${docId}`).value.trim();
+            let pDate = document.getElementById(`pdt_${docId}`).value;
+            let currentAtt = parseInt(document.getElementById(`att_${docId}`).value) || 0;
+            
+            if(action === "") { alert("❌ Please select an action (Feedback)!"); return; }
+            if(action === "Promised to Pay" && pDate === "") { alert("❌ Please select a Promise Day (1-31)!"); return; }
+
+            if(phoneVal !== d.phone && phoneVal !== "") {
+                await setDoc(doc(db, "phoneDirectory", d.nic), { phone: phoneVal });
+            }
+
+            await updateDoc(doc(db, "customers", docId), { callAttempts: currentAtt, notes: action, promiseDate: pDate });
+            
+            let btn = document.querySelector(`#row_${docId} button`);
+            btn.innerText = "SAVED"; btn.style.background = "#4caf50";
+            setTimeout(() => { document.getElementById(`row_${docId}`).style.display = 'none'; }, 800);
+        }
+
+        window.showMasterModal = (nic, prod, addr, date) => {
+            document.getElementById('m_nic').innerText = nic;
+            document.getElementById('m_prod').innerText = prod;
+            document.getElementById('m_addr').innerText = addr;
+            document.getElementById('m_date').innerText = date;
+            document.getElementById('infoModal').style.display = 'block'; document.getElementById('modalOverlay').style.display = 'block';
+        };
+        window.closeModal = () => { document.getElementById('infoModal').style.display = 'none'; document.getElementById('modalOverlay').style.display = 'none'; };
+        
+        window.uploadExcel = (ev, type) => {
+            const file = ev.target.files[0]; const reader = new FileReader();
+            document.getElementById('loadMsg').style.display = 'block';
+            reader.onload = async (e) => {
+                const data = XLSX.utils.sheet_to_json(XLSX.read(e.target.result, {type:'array'}).Sheets[XLSX.read(e.target.result, {type:'array'}).SheetNames[0]]);
+                await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify({listType: type, data: data}) });
+                alert("Import Complete!"); document.getElementById('loadMsg').style.display = 'none';
+            };
+            reader.readAsArrayBuffer(file);
+        };
+    </script>
+</body>
+</html>
